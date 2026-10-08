@@ -15,7 +15,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "node -e \"console.log('db:migrate: no migrations yet (the database arrives in milestone 6)')\"",
-    "verify:chain": "node -e \"console.log('verify:chain: wired in milestone 4')\""
+    "verify:chain": "tsx packages/crypto/src/cli/verify-chain.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

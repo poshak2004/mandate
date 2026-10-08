@@ -1,0 +1,150 @@
+[
+  {
+    "seq": 1,
+    "body": {
+      "kind": "decision",
+      "proposal": {
+        "agent_id": "marketplace-agent",
+        "principal_id": "seller_001",
+        "mandate_id": "mdt_fixture",
+        "commitment": {
+          "type": "accept_price",
+          "counterparty": "buyer_7731",
+          "reversible": false,
+          "amount_paise": 120000
+        },
+        "evidence": {
+          "offer_message_id": "msg_1"
+        },
+        "dependencies": [],
+        "idempotency_key": "idem_fixture_1"
+      },
+      "mandate_ref": {
+        "id": "mdt_fixture",
+        "version": 1
+      },
+      "policy_version": 1,
+      "engine_version": "1.0.0",
+      "decision": "BLOCK",
+      "rule_id": "LIMIT_PRICE_FLOOR",
+      "reason": "Rs 1,200 is below the price floor of Rs 1,500.",
+      "actor": "marketplace-agent",
+      "created_at": "2026-03-01T10:00:00Z"
+    },
+    "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "hash": "4fa27b47dc013d36732a365ed71647c996434d303f3e15cb43840bd40a659ed5",
+    "signature": "7b1a8e7a7fa4e06de8f5e98923b0c1c9877c1e19304eaf7b47bf0caeff3dbfe2b6aadc13d6f2e1cded7de07cf4f8c60fd2c4e24fb9d127251f828748ab27a604",
+    "key_id": "fixture-key-1"
+  },
+  {
+    "seq": 2,
+    "body": {
+      "kind": "decision",
+      "proposal": {
+        "agent_id": "marketplace-agent",
+        "principal_id": "seller_001",
+        "mandate_id": "mdt_fixture",
+        "commitment": {
+          "type": "accept_price",
+          "counterparty": "buyer_7731",
+          "reversible": false,
+          "amount_paise": 120000
+        },
+        "evidence": {
+          "offer_message_id": "msg_1"
+        },
+        "dependencies": [],
+        "idempotency_key": "idem_fixture_1"
+      },
+      "mandate_ref": {
+        "id": "mdt_fixture",
+        "version": 1
+      },
+      "policy_version": 1,
+      "engine_version": "1.0.0",
+      "decision": "ESCALATE",
+      "rule_id": "APPROVAL_REQUIRED",
+      "reason": "The mandate requires approval for schedule_meeting.",
+      "actor": "marketplace-agent",
+      "created_at": "2026-03-01T10:01:00Z"
+    },
+    "prev_hash": "4fa27b47dc013d36732a365ed71647c996434d303f3e15cb43840bd40a659ed5",
+    "hash": "cabb44e989c27f9428f6274b1a517a41a0e3c0d3ef1fa1b0ee23b8254ea87140",
+    "signature": "443fcc3b477cb5fd1addd4900f2b539d12fe2c8e36dac71a4014fffd374336c520e858212b278ee370f3f3f8a15514adace9dd4dcf4407496e06443603b8420b",
+    "key_id": "fixture-key-1"
+  },
+  {
+    "seq": 3,
+    "body": {
+      "kind": "decision",
+      "proposal": {
+        "agent_id": "marketplace-agent",
+        "principal_id": "seller_001",
+        "mandate_id": "mdt_fixture",
+        "commitment": {
+          "type": "accept_price",
+          "counterparty": "buyer_7731",
+          "reversible": false,
+          "amount_paise": 120000
+        },
+        "evidence": {
+          "offer_message_id": "msg_1"
+        },
+        "dependencies": [],
+        "idempotency_key": "idem_fixture_1"
+      },
+      "mandate_ref": {
+        "id": "mdt_fixture",
+        "version": 1
+      },
+      "policy_version": 1,
+      "engine_version": "1.0.0",
+      "decision": "ALLOW",
+      "rule_id": "WITHIN_MANDATE",
+      "reason": "accept_price is within mandate.",
+      "actor": "marketplace-agent",
+      "created_at": "2026-03-01T10:02:00Z"
+    },
+    "prev_hash": "cabb44e989c27f9428f6274b1a517a41a0e3c0d3ef1fa1b0ee23b8254ea87140",
+    "hash": "9a1d620334bbfeaa11f3a38f612376e685bf860ab83a4db48e9c23d5d2d93f4b",
+    "signature": "5dd90ac7a1ed75a8e6fa9151e92be45ec88bb444a7488b3f7b48b59322e2b82cf08a4b3e6d5df4de313941feb510bedb58731698d67dfd628cf273de0ab45f00",
+    "key_id": "fixture-key-1"
+  },
+  {
+    "seq": 4,
+    "body": {
+      "kind": "approval",
+      "proposal": {
+        "agent_id": "marketplace-agent",
+        "principal_id": "seller_001",
+        "mandate_id": "mdt_fixture",
+        "commitment": {
+          "type": "accept_price",
+          "counterparty": "buyer_7731",
+          "reversible": false,
+          "amount_paise": 120000
+        },
+        "evidence": {
+          "offer_message_id": "msg_1"
+        },
+        "dependencies": [],
+        "idempotency_key": "idem_fixture_1"
+      },
+      "mandate_ref": {
+        "id": "mdt_fixture",
+        "version": 1
+      },
+      "policy_version": 1,
+      "engine_version": "1.0.0",
+      "decision": "APPROVED",
+      "rule_id": "APPROVAL_REQUIRED",
+      "reason": "Seller approved the meeting.",
+      "actor": "seller_001",
+      "created_at": "2026-03-01T10:05:00Z"
+    },
+    "prev_hash": "9a1d620334bbfeaa11f3a38f612376e685bf860ab83a4db48e9c23d5d2d93f4b",
+    "hash": "6fae74afe24145a59964e74c6753689579e056915bba91c1d58eada9099ddbbf",
+    "signature": "3ac694a16486802ef8d4dbbcbc32841ab81353342f5e9bbf264cd7feae0db68b7480e966a968ff262e0256099d05d01c76db394c987f22dccf68411244184702",
+    "key_id": "fixture-key-1"
+  }
+]

@@ -12,6 +12,13 @@
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "fixture": "tsx scripts/make-fixture.ts"
+  },
+  "dependencies": {
+    "@mandate/schema": "workspace:*",
+    "@noble/ed25519": "^2.3.0",
+    "@noble/hashes": "^1.8.0",
+    "jose": "^5.10.0"
   }
 }
