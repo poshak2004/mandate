@@ -10,11 +10,15 @@ The three sections below (DATA MODEL, API SURFACE, DECISION ENGINE SPEC) are rep
 kickoff specification. Later milestones depend on the precedence table and rule IDs; change them
 only through an explicit, versioned spec change.
 
-> Note: the source copy of the DATA MODEL table lost its column separators and two rows
-> (`receipts`, `outcomes`) were truncated. They were reconstructed as:
-> `receipts: seq, id, tenant_id, kind (decision|approval|outcome), body JSONB, prev_hash, hash,
-signature, key_id, created_at` and `outcomes: receipt_id, status
-(executed|refunded|disputed|failed), details JSONB, created_at`.
+> **Note:** the source copy of the DATA MODEL table lost its column separators, and two rows were
+> truncated. Those two rows were reconstructed as follows:
+>
+> - **receipts:** seq, id, tenant_id, kind (decision|approval|outcome), body JSONB, prev_hash,
+>   hash, signature, key_id, created_at. Notes: "Append-only; hash-chained per tenant".
+> - **outcomes:** receipt_id, status (executed|refunded|disputed|failed), details JSONB,
+>   created_at.
+>
+> See "Implementation notes" at the end for how milestones 1-5 interpret the spec.
 
 ## DATA MODEL
 
@@ -94,3 +98,60 @@ Invariants (enforced by tests):
 - Stricter wins: when policy and mandate disagree, the more restrictive outcome applies.
 - Monotonic restriction: adding a policy rule never turns a BLOCK into an ALLOW.
 - No rule reads anything outside the input object.
+
+## Implementation notes
+
+These notes record how milestones 1-5 interpret the spec. The precedence table and rule IDs
+above are unchanged.
+
+### Engine (`packages/engine`)
+
+- **Inputs:** `evaluate()` validates every part of its input with the zod schemas. A malformed
+  proposal, policy or context is `BLOCK MISSING_DATA` (rule 1). A malformed mandate is
+  `BLOCK NO_VALID_MANDATE` (rule 2).
+- **Mandate validity (rule 2):** besides missing, expired and revoked, a mandate is invalid when
+  its `id`, `agent` or `principal` does not match the proposal. It is expired when
+  `context.now >= expires_at`, and an unparseable time also counts as expired.
+- **Limits (rule 4):** the engine checks counterparty first, then minimum amount, maximum amount,
+  PII and location.
+  - A minimum breached by `accept_price` is `LIMIT_PRICE_FLOOR`. For other types it is
+    `LIMIT_AMOUNT_MIN`.
+  - The policy's `blocked_counterparties` is applied here as `LIMIT_COUNTERPARTY`, so the
+    stricter of mandate and policy wins.
+  - If `allowed_pii` is absent, no PII may be disclosed (fail closed). If `allowed_locations` is
+    absent, any location is allowed.
+- **Approvals:** an approval in `context.approvals` matches a proposal by `idempotency_key`. A
+  matching approval clears rule 5 (`IRREVERSIBLE_HIGH_RISK`) and rule 6 (`APPROVAL_REQUIRED`).
+- **Amounts:** the risk and approval thresholds trigger when the amount is strictly greater than
+  the threshold. A commitment with no amount counts as 0.
+- **Capabilities (rule 9):** if the policy lists the agent in `agent_capabilities`, that list
+  constrains it. If `context.capabilities` is not null, it constrains the agent too. An agent
+  that neither source lists is unconstrained.
+- **Evidence (rule 10):** a `null` or empty-string evidence value counts as missing.
+- **Checks:** `checks[]` lists every rule evaluated up to and including the first match. Rule 4
+  adds one check per limit.
+
+### Receipts (`packages/crypto`)
+
+- **Hashing:** `hash = SHA-256(utf8(prev_hash_hex + canonical_json(body)))`, encoded as hex. The
+  signature is Ed25519 over the raw 32 hash bytes, encoded as hex.
+- **`body.decision`:** this field holds the verdict for the receipt's kind:
+  - a decision kind for `decision` receipts
+  - `APPROVED` or `REJECTED` for `approval` receipts
+  - an outcome status for `outcome` receipts
+- **`verifyChain`:** the first receipt must have the genesis `prev_hash`. `seq` must strictly
+  increase but can have gaps, because a database sequence may be shared across tenants. Each
+  `prev_hash` must equal the previous receipt's hash. Each hash and signature must verify for
+  the receipt's `key_id`.
+- **Mandate tokens:** a mandate token is a compact JWS with header
+  `{alg: EdDSA, kid, typ: "mandate+jws"}`. Its payload is the RFC 8785 canonical mandate.
+  Verifying a token checks the signature and the schema. Expiry and revocation are left to the
+  engine.
+
+### Policy YAML (`packages/policy`)
+
+- **Keys:** the allowed top-level keys are `approval_thresholds_inr`,
+  `irreversible_risk_threshold_inr`, `required_evidence`, `blocked_counterparties` and
+  `agent_capabilities`. Unknown keys are rejected with line numbers.
+- **Amounts:** INR amounts may have at most 2 decimal places. They are converted to integer
+  paise.
