@@ -1,0 +1,25 @@
+# Concierge policy: a travel and lifestyle concierge agent that books, pays and refunds
+# on behalf of customers. Amounts are in INR; the compiler converts them to paise.
+
+approval_thresholds_inr:
+  # Refunds over Rs 5,000 escalate to a human.
+  issue_refund: 5000
+
+# Non-refundable (irreversible) commitments over Rs 25,000 escalate to a human.
+# This covers non-refundable bookings; it applies to every irreversible commitment type.
+irreversible_risk_threshold_inr: 25000
+
+required_evidence:
+  book: [quote_id, cancellation_terms]
+  issue_refund: [original_payment_ref]
+
+blocked_counterparties: []
+
+agent_capabilities:
+  concierge-agent:
+    - book
+    - cancel
+    - make_payment
+    - issue_refund
+    - send_external_message
+    - schedule_meeting

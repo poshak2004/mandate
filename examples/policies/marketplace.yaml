@@ -1,0 +1,24 @@
+# Marketplace policy: a consumer agent that manages second-hand listings for a seller.
+# The seller's own mandate sets the price floor, PII and meeting limits; this policy adds
+# the platform operator's rules on top. The stricter of the two always wins.
+
+approval_thresholds_inr:
+  # Accepting a price above Rs 1,00,000 always needs the seller's sign-off.
+  accept_price: 100000
+
+# Irreversible commitments above Rs 50,000 escalate.
+irreversible_risk_threshold_inr: 50000
+
+required_evidence:
+  # A price can only be accepted in reply to a concrete buyer offer.
+  accept_price: [offer_message_id]
+
+blocked_counterparties:
+  - known_scammer_0001
+
+agent_capabilities:
+  marketplace-agent:
+    - send_external_message
+    - accept_price
+    - schedule_meeting
+    - disclose_pii
