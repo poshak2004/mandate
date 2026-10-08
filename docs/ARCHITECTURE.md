@@ -13,22 +13,22 @@ only through an explicit, versioned spec change.
 > Note: the source copy of the DATA MODEL table lost its column separators and two rows
 > (`receipts`, `outcomes`) were truncated. They were reconstructed as:
 > `receipts: seq, id, tenant_id, kind (decision|approval|outcome), body JSONB, prev_hash, hash,
-> signature, key_id, created_at` and `outcomes: receipt_id, status
-> (executed|refunded|disputed|failed), details JSONB, created_at`.
+signature, key_id, created_at` and `outcomes: receipt_id, status
+(executed|refunded|disputed|failed), details JSONB, created_at`.
 
 ## DATA MODEL
 
 (tables built in a later session)
 
-| Table      | Columns                                                                                                         | Notes                                 |
-| ---------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| tenants    | id, name, mode (shadow\|enforce), created_at                                                                    |                                       |
-| api_keys   | id, tenant_id, hashed_key, scopes, revoked_at                                                                   | Keys stored hashed only               |
-| principals | id, tenant_id, external_ref, kind (customer\|business)                                                          |                                       |
-| mandates   | id, tenant_id, principal_id, agent_id, version, body JSONB, jws, expires_at, revoked_at                         | New version per change                |
-| policies   | id, tenant_id, version, yaml, compiled JSONB, status (draft\|published), published_at                           |                                       |
+| Table      | Columns                                                                                                            | Notes                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| tenants    | id, name, mode (shadow\|enforce), created_at                                                                       |                                      |
+| api_keys   | id, tenant_id, hashed_key, scopes, revoked_at                                                                      | Keys stored hashed only              |
+| principals | id, tenant_id, external_ref, kind (customer\|business)                                                             |                                      |
+| mandates   | id, tenant_id, principal_id, agent_id, version, body JSONB, jws, expires_at, revoked_at                            | New version per change               |
+| policies   | id, tenant_id, version, yaml, compiled JSONB, status (draft\|published), published_at                              |                                      |
 | receipts   | seq, id, tenant_id, kind (decision\|approval\|outcome), body JSONB, prev_hash, hash, signature, key_id, created_at | Append-only; hash-chained per tenant |
-| outcomes   | receipt_id, status (executed\|refunded\|disputed\|failed), details JSONB, created_at                            |                                       |
+| outcomes   | receipt_id, status (executed\|refunded\|disputed\|failed), details JSONB, created_at                               |                                      |
 
 Receipt hash chain:
 
@@ -73,19 +73,19 @@ output = { decision, rule_id, reason, checks[] }  (checks[] = every rule evaluat
 
 Precedence (first match wins):
 
-| #   | Condition                                                         | Decision | Rule ID                                                                                                   |
-| --- | ----------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
-| 1   | Proposal fails schema or required field missing                   | BLOCK    | MISSING_DATA                                                                                              |
-| 2   | No mandate, or expired, or revoked                                | BLOCK    | NO_VALID_MANDATE                                                                                          |
-| 3   | Commitment type not in mandate scope                              | BLOCK    | OUT_OF_SCOPE                                                                                              |
+| #   | Condition                                                         | Decision | Rule ID                                                                                                 |
+| --- | ----------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | Proposal fails schema or required field missing                   | BLOCK    | MISSING_DATA                                                                                            |
+| 2   | No mandate, or expired, or revoked                                | BLOCK    | NO_VALID_MANDATE                                                                                        |
+| 3   | Commitment type not in mandate scope                              | BLOCK    | OUT_OF_SCOPE                                                                                            |
 | 4   | A mandate limit is breached (amount, PII, location, counterparty) | BLOCK    | LIMIT\_\<NAME\> e.g. LIMIT_PRICE_FLOOR, LIMIT_PII, LIMIT_LOCATION, LIMIT_COUNTERPARTY, LIMIT_AMOUNT_MAX |
-| 5   | Irreversible and above policy risk threshold                      | ESCALATE | IRREVERSIBLE_HIGH_RISK                                                                                    |
-| 6   | Policy or mandate requires approval, none granted                 | ESCALATE | APPROVAL_REQUIRED                                                                                         |
-| 7   | Prior attempt failed with a recoverable error                     | RETRY    | RECOVERABLE_FAILURE                                                                                       |
-| 8   | A declared dependency is not yet satisfied                        | WAIT     | DEPENDENCY_PENDING                                                                                        |
-| 9   | Agent lacks capability for this commitment type                   | REROUTE  | CAPABILITY_MISMATCH                                                                                       |
-| 10  | Policy requires evidence that is missing                          | ESCALATE | MISSING_EVIDENCE                                                                                          |
-| 11  | None of the above                                                 | ALLOW    | WITHIN_MANDATE                                                                                            |
+| 5   | Irreversible and above policy risk threshold                      | ESCALATE | IRREVERSIBLE_HIGH_RISK                                                                                  |
+| 6   | Policy or mandate requires approval, none granted                 | ESCALATE | APPROVAL_REQUIRED                                                                                       |
+| 7   | Prior attempt failed with a recoverable error                     | RETRY    | RECOVERABLE_FAILURE                                                                                     |
+| 8   | A declared dependency is not yet satisfied                        | WAIT     | DEPENDENCY_PENDING                                                                                      |
+| 9   | Agent lacks capability for this commitment type                   | REROUTE  | CAPABILITY_MISMATCH                                                                                     |
+| 10  | Policy requires evidence that is missing                          | ESCALATE | MISSING_EVIDENCE                                                                                        |
+| 11  | None of the above                                                 | ALLOW    | WITHIN_MANDATE                                                                                          |
 
 Invariants (enforced by tests):
 

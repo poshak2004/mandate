@@ -10,16 +10,16 @@ engine spec, and [`CLAUDE.md`](CLAUDE.md) for the architectural invariants and w
 
 ## Layout
 
-| Path                           | What                                                          |
-| ------------------------------ | ------------------------------------------------------------- |
-| `packages/schema`              | zod schemas and TypeScript types                              |
-| `packages/engine`              | pure `evaluate()`: no I/O, no clock, no randomness            |
-| `packages/policy`              | policy YAML loader, compiler and diff                         |
-| `packages/crypto`              | RFC 8785 canonical JSON, Ed25519 receipts, hash chain, JWS    |
-| `packages/sdk-ts`              | TypeScript SDK (placeholder)                                  |
-| `apps/api`, `apps/console`     | HTTP API and console (placeholders)                           |
-| `sdk-python`                   | Python SDK (placeholder)                                      |
-| `examples/marketplace-replay`  | terminal replay of the marketplace incident, with and without Mandate |
+| Path                          | What                                                                  |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `packages/schema`             | zod schemas and TypeScript types                                      |
+| `packages/engine`             | pure `evaluate()`: no I/O, no clock, no randomness                    |
+| `packages/policy`             | policy YAML loader, compiler and diff                                 |
+| `packages/crypto`             | RFC 8785 canonical JSON, Ed25519 receipts, hash chain, JWS            |
+| `packages/sdk-ts`             | TypeScript SDK (placeholder)                                          |
+| `apps/api`, `apps/console`    | HTTP API and console (placeholders)                                   |
+| `sdk-python`                  | Python SDK (placeholder)                                              |
+| `examples/marketplace-replay` | terminal replay of the marketplace incident, with and without Mandate |
 
 ## Quick start
 
