@@ -16,6 +16,7 @@ engine spec, and [`CLAUDE.md`](CLAUDE.md) for the architectural invariants and w
 | `packages/engine`             | pure `evaluate()`: no I/O, no clock, no randomness                    |
 | `packages/policy`             | policy YAML loader, compiler and diff                                 |
 | `packages/crypto`             | RFC 8785 canonical JSON, Ed25519 receipts, hash chain, JWS            |
+| `packages/db`                 | Postgres 16 schema, migrations and tenant-scoped data access          |
 | `packages/sdk-ts`             | TypeScript SDK (placeholder)                                          |
 | `apps/api`, `apps/console`    | HTTP API and console (placeholders)                                   |
 | `sdk-python`                  | Python SDK (placeholder)                                              |

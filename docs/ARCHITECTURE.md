@@ -155,3 +155,37 @@ above are unchanged.
   `agent_capabilities`. Unknown keys are rejected with line numbers.
 - **Amounts:** INR amounts may have at most 2 decimal places. They are converted to integer
   paise.
+
+### Database (`packages/db`, milestone 6)
+
+- **Schema:** Drizzle schema in `packages/db/src/schema.ts`. SQL migrations are generated
+  into `packages/db/migrations` and committed. `pnpm db:migrate` applies them to
+  `DATABASE_URL`, which defaults to the docker compose database.
+- **Extra columns and tables** beyond the DATA MODEL table:
+  - `api_keys.name` and `created_at`.
+  - `principals.created_at`. `principals.external_ref` is the id agents use
+    (`Proposal.principal_id`, `Mandate.principal`).
+  - `mandates.created_at`. The primary key is `(id, version)`.
+  - `policies.created_at`.
+  - `receipts` has unsigned copies for search and replay: `decision`, `rule_id`, `agent_id`,
+    `idempotency_key`, `ref_receipt_id` (the decision receipt an approval or outcome refers
+    to) and `context` (the evaluation context, used by backtests). The signed content is
+    `body` alone.
+  - `outcomes` adds `id`, `tenant_id` and `outcome_receipt_id`. Each outcome report is also
+    written into the chain as an outcome receipt.
+  - `signing_keys` (`key_id`, `public_key`) holds the public half of every key that has signed
+    receipts or mandate tokens. A key id can never be rebound to another key.
+- **Enforced in the database (migration `0001_append_only.sql`):**
+  - `receipts`, `outcomes`, `mandates` and `signing_keys` reject `UPDATE` and `DELETE`, so a
+    mandate change or revocation is a new version row.
+  - `policies` rejects `DELETE`. On update, `yaml`, `compiled` and `version` can never change,
+    and `status` can only move from `draft` to `published`, once. This status change is the
+    one in-place update the DATA MODEL implies.
+  - `UNIQUE (tenant_id, prev_hash)` on `receipts`, so a tenant's chain can never fork.
+- **Appending:** a receipt is appended inside a transaction that first locks the tenant row
+  (`SELECT ... FOR UPDATE`), reads the chain head, then signs and inserts. Concurrent appends
+  for one tenant are therefore serialised, and different tenants don't block each other.
+  `seq` is one global identity column, so a tenant's `seq` values have gaps; `verifyChain`
+  allows that.
+- **Tests:** these run on in-process PGlite (embedded Postgres), so no server is needed. Set
+  `MANDATE_TEST_DATABASE_URL` to also run them against a real Postgres 16.
