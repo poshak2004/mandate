@@ -1,4 +1,6 @@
-# Session report: Milestones 0-5
+# Session report
+
+## Session 1: Milestones 0-5
 
 Milestones 0 to 5 of the kickoff prompt are complete. Each one passed `pnpm install && pnpm typecheck && pnpm test` and its own "Done when" check before it was committed and pushed to `main`. The user was offline, so decisions the spec left open were made here and are listed below.
 
@@ -108,3 +110,126 @@ Milestones 0 to 5 of the kickoff prompt are complete. Each one passed `pnpm inst
 - **Docker:** `docker-compose.yml` is included but was never started, since milestones 0-5 don't need Postgres.
 - **Build output:** there are no `dist` builds. The packages are internal and consumed as source; publishing them would need a real build step.
 - **Policy versioning:** policy YAML has no version or name fields. Versions are assigned by the `policies` table, so the demo records `policy_version: 1`.
+
+## Session 2: Milestones 6-10
+
+The kickoff prompt only specified M0-M5 and said the API, database and console come "in a
+later session". The user asked to continue while offline, so this session defined M6-M10
+from `docs/ARCHITECTURE.md` (DATA MODEL and API SURFACE) and built them. Each milestone
+passed `pnpm install && pnpm typecheck && pnpm test` (plus lint and format) before its
+commit was pushed.
+
+### Commits
+
+| Commit | Title                                                                 |
+| ------ | --------------------------------------------------------------------- |
+| M6     | M6: Database                                                          |
+| M7     | M7: API                                                               |
+| M8     | M8: TypeScript SDK                                                    |
+| M9     | M9: Console                                                           |
+| M10    | M10: Python SDK                                                       |
+| CI     | GitHub Actions: Node 20 and 22, Postgres 16 service, all checks, demo |
+| final  | Turbo env passthrough fix, README run guide, this report              |
+
+### What was built
+
+- **M6 `packages/db`:** the Drizzle schema for the seven DATA MODEL tables plus
+  `signing_keys`, committed SQL migrations and a real `pnpm db:migrate`.
+  - Postgres enforces the invariants itself: receipts, outcomes, mandates and signing keys
+    are append-only (triggers). Policy content is immutable, and its status moves from
+    draft to published once. `UNIQUE (tenant_id, prev_hash)` means a chain can't fork.
+  - Receipts are appended under a per-tenant row lock.
+  - Tests run on embedded PGlite, or on a real Postgres via `MANDATE_TEST_DATABASE_URL`.
+- **M7 `apps/api`:** Fastify implementing every endpoint in the API SURFACE, plus
+  `GET /v1/me`, `GET /v1/mandates`, `GET /v1/policies[/:version]`, `GET /v1/receipts/:id`,
+  `GET /v1/receipts/export` and `GET /healthz`.
+  - Hashed API keys with `decide`, `read` and `admin` scopes.
+  - INR at the edge, paise inside.
+  - Fail-closed `decide`: malformed input is recorded as `BLOCK MISSING_DATA`.
+  - Backtests write nothing, and publishing is explicit.
+  - An escalation can be resolved once, enforced under the chain lock.
+  - Outcomes are written as chain receipts, and an executed non-ALLOW decision is flagged.
+  - Logs never contain bodies or credentials.
+  - `pnpm bootstrap -- --name X [--demo]` creates a tenant and keys.
+- **M8 `@mandate/sdk`:** a typed client with a fail-closed `guard()` (it runs the action
+  only on ALLOW and reports the outcome), and offline `verifyExport` / `verifyToken`.
+- **M9 `apps/console`:** Next.js 15 and Tailwind 4, with pages for overview, escalations
+  (approve or reject), receipts, mandates (history, revoke) and policies (upload, automatic
+  backtest, publish). The admin key is used on the server only.
+- **M10 `sdk-python`:** a standard-library-only client for Python 3.9+ with the same
+  `guard()`. It is in the pnpm workspace, so `pnpm test` runs it.
+- **CI (`.github/workflows/ci.yml`):** runs on Node 20 and 22 against a Postgres 16 service.
+  Steps: migrate, typecheck, lint, format check, test, build, and the replay demo. The first
+  run passed on both Node versions.
+
+### Test results (final run, with `MANDATE_TEST_DATABASE_URL` set to a local Postgres 16.15)
+
+| Package            | Tests                  |
+| ------------------ | ---------------------- |
+| @mandate/schema    | 46                     |
+| @mandate/engine    | 60                     |
+| @mandate/policy    | 15                     |
+| @mandate/crypto    | 36                     |
+| @mandate/db        | 23 (PGlite + Postgres) |
+| @mandate/api       | 21                     |
+| @mandate/sdk       | 6                      |
+| @mandate/console   | 4                      |
+| marketplace-replay | 5                      |
+| sdk-python         | 10 (1 live API test)   |
+| **Total**          | **226**                |
+
+Without `MANDATE_TEST_DATABASE_URL`, the Postgres runs are skipped: db runs 12 tests on
+PGlite and api runs 20. The Python live test also needs `MANDATE_TEST_API_URL` and
+`MANDATE_TEST_ADMIN_KEY`; it passed against the running API backed by Postgres 16.
+
+These were also checked by hand:
+
+- **Real Postgres:** `pnpm db:migrate` is idempotent. The API under `pnpm --filter @mandate/api start`
+  served `/v1/decide` (`BLOCK LIMIT_PRICE_FLOOR` on Rs 1,200). `/v1/receipts/export`
+  verified with `pnpm verify:chain`.
+- **Concurrency:** 60 concurrent decides across two tenants left both chains linear and
+  verified.
+- **Console:** `next build` passes. In a headless browser I checked every page at 1280px and
+  390px with no page errors and no horizontal overflow on phones. I also clicked through an
+  approval, an invalid YAML upload (it shows the error with its line number) and a draft
+  backtest (it shows the decisions that would change).
+- **No-Docker dev:** `pnpm dev` with `DATABASE_URL=pglite:...` brings up the API (:4000)
+  and the console (:3000).
+
+### Decisions made without the user
+
+1. **Milestone scope:** M6-M10 were not specified anywhere, so they were derived from
+   ARCHITECTURE.md. Extra columns and endpoints are listed under "Implementation notes".
+2. **PGlite** (embedded Postgres 16 in WebAssembly) is used for tests and for Docker-free
+   local dev. Production and CI use Postgres 16. Docker isn't installed on the build
+   machine, so local Postgres checks used a throwaway Homebrew Postgres 16 cluster.
+3. **`decide` ignores mandate tokens.** It always uses the database's latest mandate
+   version, so a stale or revoked JWS can never authorize. Tokens are for offline
+   verification by agents and third parties.
+4. **Edge amounts:** only `amount_inr` is converted. If an amount can't be converted
+   exactly, or both units are sent, it reaches the engine unconverted and is blocked as
+   MISSING_DATA. `amount_paise` sent alone is accepted as the internal unit.
+5. **`idempotency_key` doesn't deduplicate.** Every `decide` writes a receipt. The key
+   links a proposal to its approvals: the re-decide after an approval reuses it.
+6. **Approvals are final.** A rejected escalation keeps escalating and can't be approved
+   later. Re-proposing needs a new idempotency key, which means a new escalation.
+7. **Shadow mode:** the real decision is returned with `enforced: false`. Both SDKs'
+   `guard()` then runs the action and reports it.
+8. **Policy status:** the draft-to-published flip is the only in-place update. The DATA
+   MODEL implies it (`status`, `published_at`), and a trigger restricts it. To roll back,
+   upload the old YAML as a new version.
+9. **Console auth:** the console has no login of its own. It binds to 127.0.0.1 and is meant
+   to run locally or behind your access control.
+10. **Turbo strict env mode:** found while testing. `DATABASE_URL` and
+    `MANDATE_TEST_DATABASE_URL` weren't reaching tasks run through `turbo`. `turbo.json`
+    now declares them, so `pnpm dev` honours a shell `DATABASE_URL` and the real-Postgres
+    suites run in CI. They were silently skipped in the first CI run.
+
+### Left unfinished
+
+- **Service extras:** no rate limiting, API-key management endpoints (keys come from
+  `pnpm bootstrap` only), signing-key rotation tooling or tenant-mode switch endpoint.
+  Multiple signing keys are already supported by `signing_keys` and `verifyChain`.
+- **Packaging:** the SDKs aren't published to npm or PyPI, and there are no `dist` builds;
+  packages are consumed as TypeScript source.
+- **Console:** no authentication, as described above.
