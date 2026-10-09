@@ -18,7 +18,8 @@ engine spec, and [`CLAUDE.md`](CLAUDE.md) for the architectural invariants and w
 | `packages/crypto`             | RFC 8785 canonical JSON, Ed25519 receipts, hash chain, JWS            |
 | `packages/db`                 | Postgres 16 schema, migrations and tenant-scoped data access          |
 | `packages/sdk-ts`             | TypeScript SDK (`@mandate/sdk`), with a fail-closed `guard()`         |
-| `apps/api`, `apps/console`    | HTTP API and console (placeholders)                                   |
+| `apps/api`                    | Fastify HTTP API: the full `/v1` surface                              |
+| `apps/console`                | Next.js console: escalations, receipts, mandates, policies            |
 | `sdk-python`                  | Python SDK (placeholder)                                              |
 | `examples/marketplace-replay` | terminal replay of the marketplace incident, with and without Mandate |
 

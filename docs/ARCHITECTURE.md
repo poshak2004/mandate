@@ -265,3 +265,23 @@ above are unchanged.
   - It is required in production. In development a key is generated once into
     `.mandate/dev-signing-key.json` (mode 0600, git-ignored).
   - On start the public half is registered in `signing_keys`.
+
+### TypeScript SDK and console (milestones 8 and 9)
+
+- **`@mandate/sdk` (`packages/sdk-ts`):**
+  - Typed methods for every endpoint, with no automatic retries, because each `decide`
+    writes a receipt.
+  - `guard(proposal, execute)` fails closed. `execute` runs only on ALLOW (or in shadow
+    mode), and its outcome is then reported as `executed` or `failed`. If the API can't be
+    reached, `execute` never runs.
+  - `verifyExport` and `verifyToken` verify receipt chains and mandate tokens offline.
+- **Console (`apps/console`):**
+  - A Next.js 15 (App Router) and Tailwind 4 app.
+  - Pages: an overview (chain status, pending escalations, active policy, latest
+    receipts), escalations (approve or reject with a signed note), a receipt explorer
+    with detail pages, mandates with version history and revoke, and policies (upload a
+    draft, see the backtest automatically, publish).
+  - It calls the API only from server components and server actions, using
+    `MANDATE_ADMIN_KEY`, so the key never reaches the browser.
+  - It has no login of its own and binds to 127.0.0.1. Run it locally or behind your own
+    access control.
