@@ -20,7 +20,7 @@ engine spec, and [`CLAUDE.md`](CLAUDE.md) for the architectural invariants and w
 | `packages/sdk-ts`             | TypeScript SDK (`@mandate/sdk`), with a fail-closed `guard()`         |
 | `apps/api`                    | Fastify HTTP API: the full `/v1` surface                              |
 | `apps/console`                | Next.js console: escalations, receipts, mandates, policies            |
-| `sdk-python`                  | Python SDK (placeholder)                                              |
+| `sdk-python`                  | Python SDK (stdlib only), with the same fail-closed `guard()`         |
 | `examples/marketplace-replay` | terminal replay of the marketplace incident, with and without Mandate |
 
 ## Quick start

@@ -199,6 +199,8 @@ importers:
         specifier: workspace:*
         version: link:../db
 
+  sdk-python: {}
+
 packages:
 
   '@alloc/quick-lru@5.3.0':
