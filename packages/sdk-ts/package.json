@@ -2,7 +2,7 @@
   "name": "@mandate/sdk",
   "version": "0.0.0",
   "private": true,
-  "description": "TypeScript SDK (placeholder)",
+  "description": "TypeScript SDK for the Mandate API",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -12,6 +12,14 @@
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mandate/crypto": "workspace:*",
+    "@mandate/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@mandate/api": "workspace:*",
+    "@mandate/db": "workspace:*"
   }
 }

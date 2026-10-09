@@ -154,7 +154,21 @@ importers:
         specifier: ^3.25.0
         version: 3.25.76
 
-  packages/sdk-ts: {}
+  packages/sdk-ts:
+    dependencies:
+      '@mandate/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+      '@mandate/schema':
+        specifier: workspace:*
+        version: link:../schema
+    devDependencies:
+      '@mandate/api':
+        specifier: workspace:*
+        version: link:../../apps/api
+      '@mandate/db':
+        specifier: workspace:*
+        version: link:../db
 
 packages:
 
