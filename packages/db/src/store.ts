@@ -64,14 +64,26 @@ export interface ReceiptExtras {
   context?: unknown;
 }
 
+/** Hooks that run inside the append transaction, while the tenant's chain is locked. */
+export interface AppendHooks {
+  /** Runs before the receipt is built; throw (e.g. ConflictError) to abort the append. */
+  guard?: (tx: Store) => Promise<void>;
+  /** Runs after the receipt is inserted, in the same transaction. */
+  after?: (tx: Store, row: ReceiptRow) => Promise<void>;
+}
+
 export interface ReceiptFilter {
   kind?: string;
   decision?: string;
   rule_id?: string;
   agent_id?: string;
   idempotency_key?: string;
-  /** Only receipts with seq greater than this (pagination cursor). */
+  /** Only receipts with seq greater than this (pagination cursor for "asc"). */
   after_seq?: number;
+  /** Only receipts with seq less than this (pagination cursor for "desc"). */
+  before_seq?: number;
+  /** asc: oldest first (default); desc: newest first. */
+  order?: "asc" | "desc";
   limit?: number;
 }
 
@@ -288,15 +300,19 @@ export class Store {
   /**
    * Appends a receipt to the tenant's chain. `build` receives the current chain head
    * (prev_hash) and returns the signed receipt; it runs while the tenant row is locked,
-   * so no other receipt can be appended to this tenant's chain in between.
+   * so no other receipt can be appended to this tenant's chain in between. `hooks.guard`
+   * and `hooks.after` run in the same transaction.
    */
   async appendReceipt(
     tenantId: string,
     build: (prevHash: string) => ReceiptDraft,
     extras: ReceiptExtras = {},
+    hooks: AppendHooks = {},
   ): Promise<ReceiptRow> {
     return this.db.transaction(async (tx) => {
       await tx.execute(sql`select id from ${tenants} where ${tenants.id} = ${tenantId} for update`);
+      const txStore = new Store(tx as unknown as Db);
+      if (hooks.guard) await hooks.guard(txStore);
       const [head] = await tx
         .select({ hash: receipts.hash })
         .from(receipts)
@@ -326,6 +342,7 @@ export class Store {
           context: extras.context ?? null,
         })
         .returning();
+      if (hooks.after) await hooks.after(txStore, row as ReceiptRow);
       return row as ReceiptRow;
     });
   }
@@ -338,7 +355,7 @@ export class Store {
     return row ?? null;
   }
 
-  /** Searches receipts, oldest first after the cursor. */
+  /** Searches receipts in seq order (oldest first unless order is "desc"). */
   async listReceipts(tenantId: string, filter: ReceiptFilter = {}): Promise<ReceiptRow[]> {
     const where: SQL[] = [eq(receipts.tenant_id, tenantId)];
     if (filter.kind) where.push(eq(receipts.kind, filter.kind as ReceiptRow["kind"]));
@@ -347,11 +364,12 @@ export class Store {
     if (filter.agent_id) where.push(eq(receipts.agent_id, filter.agent_id));
     if (filter.idempotency_key) where.push(eq(receipts.idempotency_key, filter.idempotency_key));
     if (filter.after_seq !== undefined) where.push(gt(receipts.seq, filter.after_seq));
+    if (filter.before_seq !== undefined) where.push(lt(receipts.seq, filter.before_seq));
     return this.db
       .select()
       .from(receipts)
       .where(and(...where))
-      .orderBy(asc(receipts.seq))
+      .orderBy(filter.order === "desc" ? desc(receipts.seq) : asc(receipts.seq))
       .limit(Math.min(Math.max(filter.limit ?? 100, 1), 1000));
   }
 

@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "pnpm --filter @mandate/db migrate",
-    "verify:chain": "tsx packages/crypto/src/cli/verify-chain.ts"
+    "verify:chain": "tsx packages/crypto/src/cli/verify-chain.ts",
+    "bootstrap": "pnpm --filter @mandate/api bootstrap"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

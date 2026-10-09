@@ -183,11 +183,12 @@ describe.each(targets)("store on %s", (_name, url) => {
   it("versions mandates and returns the latest and the history", async () => {
     const t = await store.createTenant({ name: "Mandates" });
     const p = await store.ensurePrincipal(t.id, "seller-1", "customer");
+    const mid = `mdt_versions_${t.id}`;
     const again = await store.ensurePrincipal(t.id, "seller-1", "customer");
     expect(again.id).toBe(p.id);
     for (const version of [1, 2, 3]) {
       await store.insertMandateVersion({
-        id: "mdt_versions",
+        id: mid,
         version,
         tenant_id: t.id,
         principal_id: p.id,
@@ -197,14 +198,12 @@ describe.each(targets)("store on %s", (_name, url) => {
         expires_at: "2030-01-01T00:00:00Z",
       });
     }
-    expect((await store.latestMandate(t.id, "mdt_versions"))?.version).toBe(3);
-    expect((await store.mandateVersion(t.id, "mdt_versions", 2))?.jws).toBe("jws-2");
-    expect((await store.mandateHistory(t.id, "mdt_versions")).map((m) => m.version)).toEqual([
-      1, 2, 3,
-    ]);
+    expect((await store.latestMandate(t.id, mid))?.version).toBe(3);
+    expect((await store.mandateVersion(t.id, mid, 2))?.jws).toBe("jws-2");
+    expect((await store.mandateHistory(t.id, mid)).map((m) => m.version)).toEqual([1, 2, 3]);
     expect(await store.listMandates(t.id)).toHaveLength(1);
     const other = await store.createTenant({ name: "Other" });
-    expect(await store.latestMandate(other.id, "mdt_versions")).toBeNull();
+    expect(await store.latestMandate(other.id, mid)).toBeNull();
   });
 
   it("numbers policy drafts, publishes each once and never edits content", async () => {
@@ -248,6 +247,51 @@ describe.each(targets)("store on %s", (_name, url) => {
     expect(await store.pendingEscalations(t.id)).toEqual([]);
     expect((await store.approvalsFor(t.id, "idem-1")).map((r) => r.id)).toEqual([approval.id]);
     expect(await store.approvalsFor(t.id, "idem-1", approval.seq)).toEqual([]);
+  });
+
+  it("runs append hooks in the receipt transaction", async () => {
+    const t = await store.createTenant({ name: "Hooks" });
+    const build = (prev: string) => buildReceipt(prev, body(1), key.privateKey, KEY_ID) as never;
+
+    await expect(
+      store.appendReceipt(
+        t.id,
+        build,
+        {},
+        {
+          guard: async () => {
+            throw new Error("guard says no");
+          },
+        },
+      ),
+    ).rejects.toThrow(/guard says no/);
+    await expect(
+      store.appendReceipt(
+        t.id,
+        build,
+        {},
+        {
+          after: async () => {
+            throw new Error("after failed");
+          },
+        },
+      ),
+    ).rejects.toThrow(/after failed/);
+    expect(await store.chain(t.id)).toEqual([]); // both rolled back
+
+    let seenInGuard = -1;
+    const row = await store.appendReceipt(
+      t.id,
+      build,
+      {},
+      {
+        guard: async (tx) => {
+          seenInGuard = (await tx.chain(t.id)).length;
+        },
+      },
+    );
+    expect(seenInGuard).toBe(0);
+    expect((await store.chain(t.id)).map((r) => r.id)).toEqual([row.id]);
   });
 
   it("searches receipts by filter with a seq cursor", async () => {

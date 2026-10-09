@@ -8,3 +8,4 @@ coverage/
 receipts.json
 .DS_Store
 .mandate/
+!.env.example

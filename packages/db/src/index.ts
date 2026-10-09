@@ -8,3 +8,5 @@ export {
 } from "./client";
 export * from "./schema";
 export * from "./store";
+// Re-exported so callers (and tests) can run raw SQL without depending on drizzle-orm.
+export { sql } from "drizzle-orm";

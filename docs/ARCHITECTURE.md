@@ -189,3 +189,79 @@ above are unchanged.
   allows that.
 - **Tests:** these run on in-process PGlite (embedded Postgres), so no server is needed. Set
   `MANDATE_TEST_DATABASE_URL` to also run them against a real Postgres 16.
+
+### API (`apps/api`, milestone 7)
+
+- **Running it:** `pnpm bootstrap -- --name "Acme" [--mode shadow] [--demo]` creates a tenant
+  with an admin key and an agent key and prints both once. `--demo` also publishes
+  `examples/policies/marketplace.yaml` and grants the marketplace seller's mandate. Then
+  run `pnpm --filter @mandate/api dev`. Configuration comes from the environment or `.env`
+  (see `.env.example`).
+- **Auth:** send `Authorization: Bearer mk_...` (or `X-API-Key`). Keys are stored as SHA-256
+  only. Scopes:
+  - `decide`: `POST /v1/decide` and `POST /v1/outcomes`
+  - `read`: every `GET`
+  - `admin`: everything, including creating mandates and policies and resolving escalations
+- **INR at the edge:**
+  - Proposals carry `commitment.amount_inr`, which the API converts exactly to
+    `amount_paise` before the engine runs.
+  - An amount with more than 2 decimal places, or one sent in both units, is passed
+    through unconverted, so the engine records `BLOCK MISSING_DATA`.
+  - Mandate limits are written as `min_inr` / `max_inr`. Responses include the signed
+    mandate in paise plus `limits_inr`.
+- **`POST /v1/decide`:**
+  - Body: `{ proposal, capabilities? }`.
+  - The API loads the latest version of the referenced mandate (scoped to the tenant), the
+    most recently published policy (or an empty policy if none is published), and the
+    APPROVED approval receipts for the proposal's `idempotency_key`.
+  - It then calls the pure `evaluate()` with `context.now` from the server clock, and writes
+    a decision receipt.
+  - A malformed body is still evaluated and recorded as `BLOCK MISSING_DATA`.
+  - Every call writes a receipt; `idempotency_key` links a proposal to its approvals, it
+    does not deduplicate calls.
+  - The response carries `mode` and `enforced`. In `shadow` mode the caller should log the
+    decision rather than enforce it.
+  - Mandate JWS tokens are for offline verification by agents and third parties. `decide`
+    always uses the database's latest mandate version, so a stale or revoked token can
+    never authorize.
+- **Escalations:**
+  - `GET /v1/escalations` lists ESCALATE decisions whose `idempotency_key` has no approval
+    receipt yet.
+  - `resolve` takes `{ resolution: approve|reject, resolved_by, note? }` and writes an
+    approval receipt (`APPROVED` / `REJECTED`, `actor` = `resolved_by`).
+  - An escalation can be resolved once. The check runs under the chain lock, so two
+    concurrent resolutions can't both succeed.
+  - A rejected proposal keeps escalating and can't be approved later.
+- **Outcomes:**
+  - `POST /v1/outcomes` takes `{ receipt_id, status, details?, reported_by? }`. It writes an
+    outcome receipt into the chain and an `outcomes` row, in one transaction.
+  - `details` is stored unsigned in `outcomes` only.
+  - Reporting `executed` or `disputed` for a decision that wasn't ALLOW sets
+    `flagged: true` and puts a warning in the signed reason.
+- **Policies:**
+  - Uploads accept `{ yaml }` or a raw `application/yaml` body.
+  - `backtest` replays the last N decision receipts. It uses each receipt's recorded
+    proposal, the exact mandate version it used and its stored evaluation context, against
+    the given policy version, and lists the decisions that would flip. It writes nothing.
+  - Replaying the policy a decision was made under flips nothing, because the engine is
+    deterministic.
+  - `publish` returns the diff from the previous active policy. To roll back, upload the
+    old YAML as a new version.
+- **Receipts:**
+  - `GET /v1/receipts` filters on `kind`, `decision`, `rule_id`, `agent_id` and
+    `idempotency_key`. It pages with `order=asc&after_seq=` or `order=desc&before_seq=`
+    using `next_cursor`.
+  - `GET /v1/receipts/verify` verifies the tenant's whole chain against `signing_keys`.
+  - `GET /v1/receipts/export` returns `{ receipts, public_keys }`, which
+    `pnpm verify:chain` reads directly.
+  - The API also has `GET /v1/me`, `GET /v1/mandates`, `GET /v1/policies[/:version]`,
+    `GET /v1/receipts/:id` and `GET /healthz`.
+- **Logging:** request bodies are never logged. `Authorization` and `X-API-Key` are
+  redacted. Unexpected errors are logged by class and code only, since messages can echo
+  request data.
+- **Signing key:**
+  - `MANDATE_SIGNING_KEY` (Ed25519 private key, 64 hex characters) and
+    `MANDATE_SIGNING_KEY_ID`.
+  - It is required in production. In development a key is generated once into
+    `.mandate/dev-signing-key.json` (mode 0600, git-ignored).
+  - On start the public half is registered in `signing_keys`.
