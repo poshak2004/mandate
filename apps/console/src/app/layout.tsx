@@ -4,16 +4,17 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Mandate console",
-  description: "Escalations, receipts, mandates and policies for Mandate",
+  title: "Mandate",
+  description: "Keep AI agents within what people allowed them to do",
 };
 
 const NAV = [
-  { href: "/", label: "Overview" },
-  { href: "/escalations", label: "Escalations" },
-  { href: "/receipts", label: "Receipts" },
-  { href: "/mandates", label: "Mandates" },
-  { href: "/policies", label: "Policies" },
+  { href: "/", label: "Home" },
+  { href: "/playground", label: "Playground" },
+  { href: "/escalations", label: "Needs approval" },
+  { href: "/receipts", label: "Activity log" },
+  { href: "/mandates", label: "Permissions" },
+  { href: "/policies", label: "Business rules" },
 ];
 
 export default function RootLayout({ children }: { children: ReactNode }) {

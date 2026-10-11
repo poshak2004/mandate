@@ -33,8 +33,8 @@ export default async function Escalations({ searchParams }: { searchParams: Sear
   return (
     <>
       <PageHeader
-        title="Escalations"
-        subtitle="Decisions that need a person. Approving writes an approval receipt; the agent then asks again with the same idempotency key."
+        title="Needs your approval"
+        subtitle="Things an agent wanted to do that the rules say a person must OK first. Your answer is recorded; if you approve, the agent may go ahead when it asks again."
       />
       <Flash
         error={param(params, "error")}
@@ -45,7 +45,7 @@ export default async function Escalations({ searchParams }: { searchParams: Sear
         }
       />
       {list.length === 0 ? (
-        <Empty>Nothing is waiting for approval.</Empty>
+        <Empty>Nothing is waiting for you. 🎉</Empty>
       ) : (
         <div className="space-y-4">
           {list.map((e) => (

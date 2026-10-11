@@ -63,7 +63,7 @@ export default async function MandateDetail({
         }
       />
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Current terms">
+        <Card title="What the agent may do">
           <dl className="grid grid-cols-[9rem_1fr] gap-y-2 text-sm">
             <dt className="text-slate-500">Scope</dt>
             <dd>{m.scope.join(", ") || "nothing"}</dd>
@@ -81,11 +81,11 @@ export default async function MandateDetail({
             <dd>{formatTime(m.expires_at)}</dd>
           </dl>
         </Card>
-        <Card title="Signed token (JWS, EdDSA)">
+        <Card title="Signed copy (for other systems to verify)">
           <p className="font-mono text-xs break-all text-slate-600">{data.jws}</p>
         </Card>
       </div>
-      <Card title="Versions" className="mt-6">
+      <Card title="History" className="mt-6">
         <div className="-m-5 overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
@@ -121,7 +121,7 @@ export default async function MandateDetail({
           </table>
         </div>
       </Card>
-      <Card title="Signed mandate" className="mt-6">
+      <Card title="Raw data" className="mt-6">
         <Json value={m} />
       </Card>
     </>

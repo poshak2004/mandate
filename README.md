@@ -49,7 +49,8 @@ MANDATE_API_URL=http://127.0.0.1:4000
 MANDATE_ADMIN_KEY=mk_...
 ```
 
-Then `pnpm dev` starts the API on :4000 and the console on :3000. Agents call the API with
+Then `pnpm dev` starts the API on :4000 and the console on :3000. Open
+http://127.0.0.1:3000/playground to try it without writing an agent. Agents call the API with
 the agent key, directly or through an SDK:
 
 ```sh

@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   describeLimits,
   describeProposal,
+  explainEntry,
+  explainRule,
   formatPaise,
   formatTime,
   shortHash,
   toneOf,
+  verdictLabel,
 } from "../src/lib/format";
 
 describe("format helpers", () => {
@@ -15,21 +18,71 @@ describe("format helpers", () => {
     expect(formatPaise(undefined)).toBe("—");
   });
 
-  it("describes proposals, including malformed ones", () => {
+  it("describes proposals as plain sentences", () => {
     expect(
       describeProposal({
         commitment: { type: "accept_price", amount_paise: 120000, counterparty: "buyer_7731" },
       }),
-    ).toBe("accept_price ₹1,200 → buyer_7731");
+    ).toBe("Accept ₹1,200 from buyer_7731");
     expect(
       describeProposal({
-        commitment: { type: "disclose_pii", pii_fields: ["home_address"], counterparty: "b" },
+        commitment: {
+          type: "disclose_pii",
+          pii_fields: ["home_address", "phone"],
+          counterparty: "b",
+        },
       }),
-    ).toBe("disclose_pii [home_address] → b");
+    ).toBe("Share home address and phone number with b");
     expect(
-      describeProposal({ commitment: { type: "schedule_meeting", location: { kind: "public" } } }),
-    ).toBe("schedule_meeting public location");
-    expect(describeProposal(null)).toBe("malformed proposal");
+      describeProposal({
+        commitment: {
+          type: "schedule_meeting",
+          counterparty: "b",
+          location: { kind: "public", description: "Rajiv Chowk metro" },
+        },
+      }),
+    ).toBe("Meet b at Rajiv Chowk metro");
+    expect(
+      describeProposal({
+        commitment: {
+          type: "book",
+          counterparty: "IndiGo",
+          amount_paise: 840000,
+          resource: "DEL-GOI",
+        },
+      }),
+    ).toBe("Book DEL-GOI with IndiGo for ₹8,400");
+    expect(describeProposal(null)).toBe("Incomplete request");
+  });
+
+  it("explains rules and labels verdicts in plain words", () => {
+    expect(verdictLabel("ESCALATE")).toBe("Needs approval");
+    expect(verdictLabel("ALLOW")).toBe("Allowed");
+    expect(explainRule("LIMIT_PRICE_FLOOR")).toMatch(/lowest price/);
+    for (const id of [
+      "WITHIN_MANDATE",
+      "LIMIT_PII",
+      "APPROVAL_REQUIRED",
+      "MISSING_DATA",
+      "NO_VALID_MANDATE",
+    ]) {
+      expect(explainRule(id).length).toBeGreaterThan(10);
+    }
+  });
+
+  it("explains approvals and results in plain words", () => {
+    expect(
+      explainEntry({ kind: "approval", decision: "REJECTED", rule_id: null, actor: "seller_001" }),
+    ).toBe("seller_001 said no.");
+    expect(
+      explainEntry({ kind: "approval", decision: "APPROVED", rule_id: null, actor: "a" }),
+    ).toBe("a approved it.");
+    expect(
+      explainEntry({ kind: "outcome", decision: "executed", rule_id: null, actor: "x" }),
+    ).toMatch(/done/);
+    expect(
+      explainEntry({ kind: "decision", decision: "BLOCK", rule_id: "LIMIT_PII", actor: "x" }),
+    ).toBe(explainRule("LIMIT_PII"));
   });
 
   it("describes mandate limits", () => {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { toneOf, type Tone } from "@/lib/format";
+import { toneOf, verdictLabel, type Tone } from "@/lib/format";
 
 const TONES: Record<Tone, string> = {
   green: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
@@ -12,7 +12,7 @@ const TONES: Record<Tone, string> = {
 };
 
 export function Verdict({ value }: { value: string }) {
-  return <Badge tone={toneOf(value)}>{value}</Badge>;
+  return <Badge tone={toneOf(value)}>{verdictLabel(value)}</Badge>;
 }
 
 export function Badge({ tone = "slate", children }: { tone?: Tone; children: ReactNode }) {

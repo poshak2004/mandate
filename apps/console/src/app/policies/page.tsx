@@ -38,14 +38,14 @@ export default async function Policies({ searchParams }: { searchParams: SearchP
   return (
     <>
       <PageHeader
-        title="Policies"
-        subtitle="Upload YAML as a draft, backtest it against recorded proposals, then publish. Only a publish changes decisions."
+        title="Business rules"
+        subtitle="Rules your business applies to every agent, on top of each person's own limits (the stricter one always wins). Try a new version on past activity before switching it on."
       />
       <Flash error={param(params, "error")} />
       <div className="grid gap-6 lg:grid-cols-[1fr_24rem]">
         <Card title="Versions">
           {data.policies.length === 0 ? (
-            <Empty>No policy yet: decisions use the mandate alone.</Empty>
+            <Empty>No business rules yet: only each person's own permissions apply.</Empty>
           ) : (
             <div className="-m-5 overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-100">
@@ -81,7 +81,7 @@ export default async function Policies({ searchParams }: { searchParams: SearchP
             </div>
           )}
         </Card>
-        <Card title="Upload a draft">
+        <Card title="Write a new version">
           <form action={uploadPolicy} className="space-y-3">
             <textarea
               name="yaml"
@@ -91,7 +91,7 @@ export default async function Policies({ searchParams }: { searchParams: SearchP
               spellCheck={false}
               className="block w-full rounded-lg border-0 bg-slate-950 p-3 font-mono text-xs text-slate-100 ring-1 ring-slate-800 focus:ring-2 focus:ring-indigo-500"
             />
-            <button className={primaryButton}>Upload draft</button>
+            <button className={primaryButton}>Save as draft</button>
           </form>
         </Card>
       </div>

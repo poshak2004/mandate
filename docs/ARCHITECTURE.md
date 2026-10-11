@@ -285,3 +285,23 @@ above are unchanged.
     `MANDATE_ADMIN_KEY`, so the key never reaches the browser.
   - It has no login of its own and binds to 127.0.0.1. Run it locally or behind your own
     access control.
+
+### Playground and plain-language console (after milestone 10)
+
+- **Playground (`/playground`):** a guided way to feel the product without writing an
+  agent. You pick a scenario (selling on a marketplace, booking travel, support refunds),
+  set the person's rules in plain words, then play the other side by clicking messages.
+  - Each click sends a real proposal through `POST /v1/decide`, using a fresh mandate built
+    from the chosen rules.
+  - The result is shown in plain language next to "what would have happened without
+    Mandate".
+  - On "Needs approval", the user answers as the person. "Yes" records an approval and the
+    agent asks again with the same idempotency key. "No" records a rejection, which is
+    final.
+  - Scenarios are pure data in `apps/console/src/lib/scenarios.ts` and are unit-tested.
+    Every step lands in the real activity log.
+- **Plain language:** the console names things for people, not engineers. Mandates become
+  "Permissions", policies "Business rules", receipts the "Activity log", escalations "Needs
+  approval". Verdicts read Allowed / Blocked / Needs approval, and each entry gets a
+  one-sentence "why". Hashes and signatures sit under a collapsed "Proof" section. URLs and
+  the API are unchanged.

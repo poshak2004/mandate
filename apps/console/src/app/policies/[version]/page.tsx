@@ -54,13 +54,13 @@ export default async function PolicyDetail({
   return (
     <>
       <PageHeader
-        title={`Policy v${version}`}
+        title={`Business rules, version ${version}`}
         subtitle={`Uploaded ${formatTime(policy.created_at)}${policy.published_at ? ` · published ${formatTime(policy.published_at)}` : ""}`}
         actions={
           policy.status === "draft" ? (
             <form action={publishPolicy}>
               <input type="hidden" name="version" value={version} />
-              <button className={primaryButton}>Publish v{version}</button>
+              <button className={primaryButton}>Switch these rules on</button>
             </form>
           ) : (
             <Badge tone={active ? "green" : "slate"}>{active ? "active" : "superseded"}</Badge>
@@ -78,16 +78,18 @@ export default async function PolicyDetail({
       <Card
         title={
           <span>
-            Backtest: the last {backtest.evaluated} decisions replayed against v{version} ·{" "}
+            Test run: the last {backtest.evaluated} agent requests, re-checked with these rules ·{" "}
             <span className={backtest.flipped_count ? "text-amber-700" : "text-emerald-700"}>
-              {backtest.flipped_count} would change
+              {backtest.flipped_count} would turn out differently
             </span>
           </span>
         }
         className="mb-6"
       >
         {backtest.flipped_count === 0 ? (
-          <Empty>No recorded decision would change under this policy.</Empty>
+          <Empty>
+            None of the recent activity would have turned out differently under these rules.
+          </Empty>
         ) : (
           <>
             <div className="mb-4 flex flex-wrap gap-2 text-xs">
@@ -101,9 +103,9 @@ export default async function PolicyDetail({
               <table className="min-w-full divide-y divide-slate-100">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className={th}>Receipt</th>
-                    <th className={th}>Recorded</th>
-                    <th className={th}>Under v{version}</th>
+                    <th className={th}>Activity</th>
+                    <th className={th}>What happened</th>
+                    <th className={th}>With these rules</th>
                     <th className={th}>Why</th>
                   </tr>
                 </thead>
@@ -130,12 +132,12 @@ export default async function PolicyDetail({
         )}
       </Card>
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="YAML">
+        <Card title="The rules (as written)">
           <pre className="overflow-auto rounded-lg bg-slate-950 p-4 font-mono text-xs text-slate-100">
             {policy.yaml}
           </pre>
         </Card>
-        <Card title="Compiled (paise)">
+        <Card title="As Mandate reads them (amounts in paise)">
           <Json value={policy.policy} />
         </Card>
       </div>

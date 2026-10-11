@@ -16,20 +16,22 @@ export default async function Mandates() {
   return (
     <>
       <PageHeader
-        title="Mandates"
-        subtitle="Grants of authority from a principal to one agent. Changes and revocations add a new signed version."
+        title="Permissions"
+        subtitle="What each AI agent is allowed to do on someone's behalf. Each change is kept as a new version, and you can revoke a permission at any time."
       />
       {mandates.length === 0 ? (
-        <Empty>No mandates yet. Create one with POST /v1/mandates.</Empty>
+        <Empty>
+          No permissions yet. The Playground creates some, or your app creates them through the API.
+        </Empty>
       ) : (
         <Card>
           <div className="-m-5 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className={th}>Mandate</th>
-                  <th className={th}>Principal → agent</th>
-                  <th className={th}>Scope</th>
+                  <th className={th}>Permission</th>
+                  <th className={th}>Who → which agent</th>
+                  <th className={th}>May do</th>
                   <th className={th}>Limits</th>
                   <th className={th}>Expires</th>
                   <th className={th}>Status</th>

@@ -3,7 +3,6 @@ import {
   Card,
   Empty,
   ErrorPanel,
-  Mono,
   PageHeader,
   TextLink,
   Verdict,
@@ -13,12 +12,19 @@ import {
   th,
 } from "@/components/ui";
 import { api, isConfigured } from "@/lib/api";
-import { describeProposal, formatTime, shortHash } from "@/lib/format";
+import Link from "next/link";
+import { describeProposal, explainEntry, formatTime, verdictLabel } from "@/lib/format";
 import { param, type SearchParams } from "@/lib/params";
 
 export const dynamic = "force-dynamic";
 
 const KINDS = ["", "decision", "approval", "outcome"] as const;
+const KIND_NAMES: Record<(typeof KINDS)[number], string> = {
+  "": "Everything",
+  decision: "Agent requests",
+  approval: "Your approvals",
+  outcome: "Reported results",
+};
 const VERDICTS = [
   "",
   "ALLOW",
@@ -67,33 +73,33 @@ export default async function Receipts({ searchParams }: { searchParams: SearchP
   return (
     <>
       <PageHeader
-        title="Receipts"
-        subtitle="Every decision, approval and outcome, newest first. Each is signed and chained to the one before."
+        title="Activity log"
+        subtitle="Everything agents asked to do, what Mandate answered, and what people approved. Newest first. Entries are signed and linked, so none can be quietly edited or deleted."
       />
       <Card className="mb-6">
         <form className="grid grid-cols-1 gap-3 sm:grid-cols-5 sm:items-end">
           <label className="text-xs font-medium text-slate-600">
-            Kind
+            Show
             <select name="kind" defaultValue={kind ?? ""} className={`${input} mt-1`}>
               {KINDS.map((k) => (
                 <option key={k} value={k}>
-                  {k || "any"}
+                  {KIND_NAMES[k]}
                 </option>
               ))}
             </select>
           </label>
           <label className="text-xs font-medium text-slate-600">
-            Verdict
+            Result
             <select name="decision" defaultValue={decision ?? ""} className={`${input} mt-1`}>
               {VERDICTS.map((v) => (
                 <option key={v} value={v}>
-                  {v || "any"}
+                  {v ? verdictLabel(v) : "Any result"}
                 </option>
               ))}
             </select>
           </label>
           <label className="text-xs font-medium text-slate-600">
-            Rule
+            Reason code
             <input
               name="rule_id"
               defaultValue={rule ?? ""}
@@ -114,40 +120,42 @@ export default async function Receipts({ searchParams }: { searchParams: SearchP
         </form>
       </Card>
       {page.receipts.length === 0 ? (
-        <Empty>No receipts match.</Empty>
+        <Empty>Nothing matches these filters.</Empty>
       ) : (
         <Card>
           <div className="-m-5 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className={th}>Seq</th>
-                  <th className={th}>Verdict</th>
-                  <th className={th}>Rule</th>
-                  <th className={th}>Proposal</th>
-                  <th className={th}>Actor</th>
-                  <th className={th}>Hash</th>
-                  <th className={th}>Time</th>
+                  <th className={th}>Result</th>
+                  <th className={th}>What the agent tried</th>
+                  <th className={th}>Why</th>
+                  <th className={th}>When</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {page.receipts.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50">
-                    <td className={td}>
-                      <TextLink href={`/receipts/${r.id}`}>#{r.seq}</TextLink>
-                    </td>
                     <td className={`${td} whitespace-nowrap`}>
-                      <span className="mr-2 text-xs text-slate-400">{r.kind}</span>
-                      <Verdict value={r.decision} />
+                      <Link href={`/receipts/${r.id}`}>
+                        <Verdict value={r.decision} />
+                      </Link>
+                      <div className="mt-1 text-xs text-slate-400">
+                        #{r.seq}{" "}
+                        {r.kind === "decision"
+                          ? ""
+                          : r.kind === "approval"
+                            ? "your answer"
+                            : "result"}
+                      </div>
                     </td>
                     <td className={td}>
-                      <Mono>{r.rule_id ?? "—"}</Mono>
+                      <TextLink href={`/receipts/${r.id}`}>
+                        {describeProposal(r.body.proposal)}
+                      </TextLink>
+                      <div className="text-xs text-slate-400">by {r.body.actor}</div>
                     </td>
-                    <td className={td}>{describeProposal(r.body.proposal)}</td>
-                    <td className={td}>{r.body.actor}</td>
-                    <td className={td}>
-                      <Mono title={r.hash}>{shortHash(r.hash)}</Mono>
-                    </td>
+                    <td className={td}>{explainEntry({ ...r, actor: r.body.actor })}</td>
                     <td className={`${td} whitespace-nowrap`}>{formatTime(r.body.created_at)}</td>
                   </tr>
                 ))}

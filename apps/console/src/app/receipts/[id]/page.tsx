@@ -13,11 +13,17 @@ import {
   th,
 } from "@/components/ui";
 import { api, isConfigured } from "@/lib/api";
-import { describeProposal, formatTime } from "@/lib/format";
+import { describeProposal, explainEntry, formatTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReceiptDetail({ params }: { params: Promise<{ id: string }> }) {
+const HEADINGS = {
+  decision: "An agent asked",
+  approval: "A person answered",
+  outcome: "The agent reported back",
+} as const;
+
+export default async function ActivityDetail({ params }: { params: Promise<{ id: string }> }) {
   if (!isConfigured()) return <Setup />;
   const { id } = await params;
   let data;
@@ -27,104 +33,70 @@ export default async function ReceiptDetail({ params }: { params: Promise<{ id: 
     if (error instanceof MandateApiError && error.status === 404) notFound();
     return <ErrorPanel error={error} />;
   }
-  const { receipt: r, outcomes, related } = data;
+  const { receipt: r, related } = data;
   const b = r.body;
+  const why = explainEntry({ ...r, actor: b.actor });
   return (
     <>
       <PageHeader
-        title={`Receipt #${r.seq}`}
-        subtitle={<Mono>{r.id}</Mono>}
+        title={describeProposal(b.proposal)}
+        subtitle={`${HEADINGS[r.kind]} · activity #${r.seq} · ${formatTime(b.created_at)}`}
         actions={<Verdict value={r.decision} />}
       />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="What was decided">
-          <dl className="grid grid-cols-[9rem_1fr] gap-y-2 text-sm">
-            <dt className="text-slate-500">Kind</dt>
-            <dd>{b.kind}</dd>
-            <dt className="text-slate-500">Verdict</dt>
-            <dd>
-              <Verdict value={b.decision} /> <Mono>{b.rule_id ?? ""}</Mono>
-            </dd>
-            <dt className="text-slate-500">Reason</dt>
-            <dd className="text-slate-800">{b.reason}</dd>
-            <dt className="text-slate-500">Proposal</dt>
-            <dd>{describeProposal(b.proposal)}</dd>
-            <dt className="text-slate-500">Actor</dt>
-            <dd>{b.actor}</dd>
-            <dt className="text-slate-500">Mandate</dt>
-            <dd>
-              {b.mandate_ref ? (
-                <TextLink href={`/mandates/${b.mandate_ref.id}`}>
-                  {b.mandate_ref.id} v{b.mandate_ref.version}
-                </TextLink>
-              ) : (
-                "none"
-              )}
-            </dd>
-            <dt className="text-slate-500">Policy</dt>
-            <dd>{b.policy_version === null ? "none" : `v${b.policy_version}`}</dd>
-            <dt className="text-slate-500">Engine</dt>
-            <dd>{b.engine_version}</dd>
-            <dt className="text-slate-500">Time</dt>
-            <dd>{formatTime(b.created_at)}</dd>
-            {r.ref_receipt_id ? (
-              <>
-                <dt className="text-slate-500">Refers to</dt>
-                <dd>
-                  <TextLink href={`/receipts/${r.ref_receipt_id}`}>{r.ref_receipt_id}</TextLink>
-                </dd>
-              </>
-            ) : null}
-          </dl>
-        </Card>
-        <Card title="Signature and chain">
-          <dl className="grid grid-cols-[6rem_1fr] gap-y-2 text-sm break-all">
-            <dt className="text-slate-500">Hash</dt>
-            <dd>
-              <Mono>{r.hash}</Mono>
-            </dd>
-            <dt className="text-slate-500">Prev hash</dt>
-            <dd>
-              <Mono>{r.prev_hash}</Mono>
-            </dd>
-            <dt className="text-slate-500">Signature</dt>
-            <dd>
-              <Mono>{r.signature}</Mono>
-            </dd>
-            <dt className="text-slate-500">Key id</dt>
-            <dd>
-              <Mono>{r.key_id}</Mono>
-            </dd>
-          </dl>
-          <p className="mt-4 text-xs text-slate-500">
-            hash = SHA-256(prev_hash ‖ RFC 8785 canonical body); the signature is Ed25519 over the
-            hash.
-          </p>
-        </Card>
-      </div>
-      {related.length > 0 || outcomes.length > 0 ? (
-        <Card title="Same proposal (idempotency key)" className="mt-6">
+
+      <Card title="What happened" className="mb-6">
+        <dl className="grid grid-cols-1 gap-y-3 text-sm sm:grid-cols-[10rem_1fr]">
+          <dt className="text-slate-500">Result</dt>
+          <dd>
+            <Verdict value={b.decision} />
+          </dd>
+          {why ? (
+            <>
+              <dt className="text-slate-500">Why</dt>
+              <dd className="text-slate-900">{why}</dd>
+            </>
+          ) : null}
+          <dt className="text-slate-500">Details</dt>
+          <dd className="text-slate-700">{b.reason}</dd>
+          <dt className="text-slate-500">{r.kind === "approval" ? "Answered by" : "Agent"}</dt>
+          <dd>{b.actor}</dd>
+          <dt className="text-slate-500">Permission used</dt>
+          <dd>
+            {b.mandate_ref ? (
+              <TextLink href={`/mandates/${b.mandate_ref.id}`}>
+                {b.mandate_ref.id} (version {b.mandate_ref.version})
+              </TextLink>
+            ) : (
+              "none"
+            )}
+          </dd>
+          <dt className="text-slate-500">Business rules</dt>
+          <dd>{b.policy_version === null ? "none" : `version ${b.policy_version}`}</dd>
+        </dl>
+      </Card>
+
+      {related.length > 0 ? (
+        <Card title="The rest of this story" className="mb-6">
           <div className="-m-5 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-100">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className={th}>Seq</th>
-                  <th className={th}>Verdict</th>
-                  <th className={th}>Reason</th>
-                  <th className={th}>Time</th>
+                  <th className={th}>Result</th>
+                  <th className={th}>What happened</th>
+                  <th className={th}>When</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {related.map((x) => (
                   <tr key={x.id}>
-                    <td className={td}>
-                      <TextLink href={`/receipts/${x.id}`}>#{x.seq}</TextLink>
-                    </td>
                     <td className={`${td} whitespace-nowrap`}>
-                      <span className="mr-2 text-xs text-slate-400">{x.kind}</span>
-                      <Verdict value={x.decision} />
+                      <TextLink href={`/receipts/${x.id}`}>
+                        <Verdict value={x.decision} />
+                      </TextLink>
                     </td>
-                    <td className={td}>{x.body.reason}</td>
+                    <td className={td}>
+                      {HEADINGS[x.kind]}: {explainEntry({ ...x, actor: x.body.actor })}
+                    </td>
                     <td className={`${td} whitespace-nowrap`}>{formatTime(x.body.created_at)}</td>
                   </tr>
                 ))}
@@ -133,9 +105,45 @@ export default async function ReceiptDetail({ params }: { params: Promise<{ id: 
           </div>
         </Card>
       ) : null}
-      <Card title="Signed body" className="mt-6">
-        <Json value={b} />
-      </Card>
+
+      <details className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-slate-700">
+          Proof (for auditors and developers)
+        </summary>
+        <div className="space-y-4 border-t border-slate-100 p-5">
+          <p className="text-sm text-slate-600">
+            This entry is signed by Mandate and linked to the one before it, so nobody can edit or
+            delete it without the whole log failing verification.
+          </p>
+          <dl className="grid grid-cols-[7rem_1fr] gap-y-2 text-sm break-all">
+            <dt className="text-slate-500">Entry id</dt>
+            <dd>
+              <Mono>{r.id}</Mono>
+            </dd>
+            <dt className="text-slate-500">Reason code</dt>
+            <dd>
+              <Mono>{b.rule_id ?? "—"}</Mono>
+            </dd>
+            <dt className="text-slate-500">Hash</dt>
+            <dd>
+              <Mono>{r.hash}</Mono>
+            </dd>
+            <dt className="text-slate-500">Previous</dt>
+            <dd>
+              <Mono>{r.prev_hash}</Mono>
+            </dd>
+            <dt className="text-slate-500">Signature</dt>
+            <dd>
+              <Mono>{r.signature}</Mono>
+            </dd>
+            <dt className="text-slate-500">Signed by key</dt>
+            <dd>
+              <Mono>{r.key_id}</Mono>
+            </dd>
+          </dl>
+          <Json value={b} />
+        </div>
+      </details>
     </>
   );
 }
