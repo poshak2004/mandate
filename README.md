@@ -5,6 +5,39 @@ people: prices, payments, bookings, disclosures of personal data, meetings. Agen
 engine decides; every decision leaves an Ed25519-signed, hash-chained receipt. No LLM is ever
 involved in deciding.
 
+## Why it exists
+
+AI assistants are starting to act for people: accepting prices, paying, booking, sharing an
+address. Usually the same model that wants to take an action also decides whether it may.
+Mandate separates the two.
+
+```
+Agent ──proposal──▶ Mandate engine ──▶ ALLOW · BLOCK · ESCALATE   (+ signed receipt)
+```
+
+- **Deterministic**: the same proposal and policy always give the same decision. No LLM decides.
+- **Fail-closed**: missing or ambiguous information never becomes an ALLOW.
+- **Auditable**: every decision is an Ed25519-signed, hash-chained receipt you can verify offline.
+- **Humans stay in charge**: risky actions escalate for approval; policy changes are versioned.
+
+### See it in 30 seconds
+
+`examples/marketplace-replay` re-runs a 2026 incident in which a consumer agent accepted a
+lowball price, shared the seller's home address and arranged a pickup without asking. With
+Mandate, the Rs 1,200 lowball is **BLOCKED** (price floor), the address request is **BLOCKED**
+(no PII), the Rs 1,600 offer is **ALLOWED**, and the meetup **ESCALATES** to the seller first.
+
+```sh
+pnpm --filter marketplace-replay start -- --compare
+```
+
+### Status
+
+Built solo, Aug–Oct 2026: decision engine, policy compiler, signed receipts, a Postgres-backed
+API, a Next.js console and TypeScript and Python SDKs, with 170+ tests and CI on Node 20 and 22.
+It began as the "Governor" prototype while I worked on AI-assistant operations at FAFF.
+Built by [Poshak K](https://linkedin.com/in/poshak-k).
+
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the data model, API surface and decision
 engine spec, and [`CLAUDE.md`](CLAUDE.md) for the architectural invariants and working rules.
 
